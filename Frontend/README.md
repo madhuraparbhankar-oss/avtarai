@@ -1,4 +1,4 @@
-# ARIA Backend — FastAPI WebSocket Server
+# AvtarAi — FastAPI WebSocket Server
 
 Advanced Real-time Interactive Assistant backend powered by Gemini 2.5 Flash + gTTS.
 
