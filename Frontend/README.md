@@ -1,73 +1,118 @@
-# Welcome to your Lovable project
+# ARIA Backend — FastAPI WebSocket Server
 
-## Project info
+Advanced Real-time Interactive Assistant backend powered by Gemini 2.5 Flash + gTTS.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Tech Stack
 
-## How can I edit this code?
+- **FastAPI** — WebSocket server
+- **Google Gemini 2.5 Flash** — LLM responses
+- **gTTS** — Text-to-speech audio generation
+- **Uvicorn** — ASGI server
 
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+## Project Structure
+```
+backend/
+├── main.py
+├── requirements.txt
+├── render.yaml
+└── README.md
 ```
 
-**Edit a file directly in GitHub**
+## Local Development
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Prerequisites
+- Python 3.9+
+- Google Gemini API key
 
-**Use GitHub Codespaces**
+### Setup
+```bash
+# Clone the repo
+git clone https://github.com/YOUR_USERNAME/aria-backend.git
+cd aria-backend
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate        # Mac/Linux
+venv\Scripts\activate           # Windows
 
-## What technologies are used for this project?
+# Install dependencies
+pip install -r requirements.txt
 
-This project is built with:
+# Set your API key
+export GOOGLE_API_KEY=your_gemini_api_key_here   # Mac/Linux
+set GOOGLE_API_KEY=your_gemini_api_key_here      # Windows
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Run
+```bash
+uvicorn main:app --host 0.0.0.0 --port 8002 --reload
+```
 
-## How can I deploy this project?
+Server starts at `ws://localhost:8002/ws`
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## Deployment (Render)
 
-## Can I connect a custom domain to my Lovable project?
+1. Push this repo to GitHub
+2. Go to [render.com](https://render.com) → New → Web Service
+3. Connect your GitHub repo
+4. Set the following:
+   - **Runtime**: Python
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+5. Add environment variable:
+   - `GOOGLE_API_KEY` = your Gemini API key
+6. Deploy
 
-Yes, you can!
+Live WebSocket URL: `wss://your-service-name.onrender.com/ws`
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## WebSocket API
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+### Client → Server
+
+Send a JSON message:
+```json
+{
+  "content": "Hello, what is the weather today?"
+}
+```
+
+### Server → Client
+
+The server sends a sequence of messages per interaction:
+
+| Type | Format | Description |
+|------|--------|-------------|
+| `text_start` | `{"type": "text_start"}` | Signals response is starting |
+| `text_chunk` | `{"type": "text_chunk", "content": "..."}` | Streamed text token |
+| `audio` | `{"type": "audio"}` | Signals next message is audio bytes |
+| `(binary)` | `bytes` | Raw MP3 audio for the sentence |
+| `text_end` | `{"type": "text_end"}` | Signals response is complete |
+
+### Example Flow
+```
+Client  →  {"content": "Tell me a joke"}
+Server  →  {"type": "text_start"}
+Server  →  {"type": "text_chunk", "content": "Why don't"}
+Server  →  {"type": "text_chunk", "content": " scientists trust atoms?"}
+Server  →  {"type": "audio"}
+Server  →  <binary MP3 bytes>
+Server  →  {"type": "text_end"}
+```
+
+## Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `GOOGLE_API_KEY` | Yes | Gemini API key from Google AI Studio |
+| `PORT` | Auto (Render) | Port to run the server on |
+
+## Notes
+
+- Free tier on Render spins down after 15 min of inactivity — first response may take ~30s
+- Use [UptimeRobot](https://uptimerobot.com) (free) to ping every 10 min and keep it alive
+- Audio is streamed sentence-by-sentence for low latency
+- Frontend must connect via `wss://` (not `ws://`) in production
+
+## License
+
+MIT
